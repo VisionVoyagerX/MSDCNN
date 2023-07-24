@@ -5,12 +5,13 @@ import torch
 from torch.optim import SGD
 from torch.nn import MSELoss
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import StepLR
 from torchvision.transforms import Resize, RandomHorizontalFlip, RandomVerticalFlip, RandomRotation
 from torchmetrics import MetricCollection, PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
-from torchsummary import summary
+from torchinfo import summary
 
 from data_loader.DataLoader import DIV2K, GaoFen2, Sev2Mod, WV3, GaoFen2panformer
-from MSDCNN import PNNmodel
+from MSDCNN import MSDCNN_model
 from utils import *
 
 
@@ -22,35 +23,25 @@ def main():
 
     # Initialize DataLoader
     train_dataset = GaoFen2(
-        Path("/home/ubuntu/project/Data/GaoFen-2/train/train_gf2-001.h5"), transforms=[(RandomHorizontalFlip(1), 0.3), (RandomVerticalFlip(1), 0.3)])  # /home/ubuntu/project
+        Path("F:/Data/GaoFen-2/train/train_gf2-001.h5"), transforms=[(RandomHorizontalFlip(1), 0.3), (RandomVerticalFlip(1), 0.3)])  # /home/ubuntu/project
     train_loader = DataLoader(
-        dataset=train_dataset, batch_size=128, shuffle=True, drop_last=True)
+        dataset=train_dataset, batch_size=64, shuffle=True, drop_last=True)
 
     validation_dataset = GaoFen2(
-        Path("/home/ubuntu/project/Data/GaoFen-2/val/valid_gf2.h5"))
+        Path("F:/Data/GaoFen-2/val/valid_gf2.h5"))
     validation_loader = DataLoader(
         dataset=validation_dataset, batch_size=64, shuffle=True)
 
     test_dataset = GaoFen2(
-        Path("/home/ubuntu/project/Data/GaoFen-2/drive-download-20230623T170619Z-001/test_gf2_multiExm1.h5"))
+        Path("F:/Data/GaoFen-2/drive-download-20230623T170619Z-001/test_gf2_multiExm1.h5"))
     test_loader = DataLoader(
         dataset=test_dataset, batch_size=64, shuffle=False)
 
     # Initialize Model, optimizer, criterion and metrics
-    # TODO is imge_size necesasary?
-    model = PNNmodel(scale=4, mslr_mean=train_dataset.mslr_mean.to(device), mslr_std=train_dataset.mslr_std.to(device), pan_mean=train_dataset.pan_mean.to(device),
-                     pan_std=train_dataset.pan_std.to(device)).to(device)
+    model = MSDCNN_model(scale=4, mslr_mean=train_dataset.mslr_mean.to(device), mslr_std=train_dataset.mslr_std.to(device), pan_mean=train_dataset.pan_mean.to(device),
+                         pan_std=train_dataset.pan_std.to(device)).to(device)
 
-    my_list = ['conv_3.weight', 'conv_3.bias']
-    params = list(
-        filter(lambda kv: kv[0] in my_list, model.parameters()))
-    base_params = list(
-        filter(lambda kv: kv[0] not in my_list, model.parameters()))
-
-    optimizer = SGD([
-        {'params': params},
-        {'params': base_params, 'lr': 1e-9}
-    ], lr=1e-8, momentum=0.9)
+    optimizer = SGD(model.parameters(), lr=0.000001, momentum=0.9)
 
     criterion = MSELoss().to(device)
 
@@ -78,29 +69,24 @@ def main():
     best_eval_psnr = 0
     best_test_psnr = 0
     current_daytime = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
-    steps = 200000
+    steps = 250000
     save_interval = 1000
     report_interval = 50
-    test_intervals = [100000, 200000, 300000, 400000,
-                      500000, 600000, 700000, 800000, 900000, 1000000]
-    evaluation_interval = [100000, 200000, 300000, 400000,
-                           500000, 600000, 700000, 800000, 900000, 1000000]
+    test_intervals = [20000, 40000, 60000, 80000, 100000, 120000,
+                      140000, 160000, 180000, 200000, 220000, 240000, 250000]
+    evaluation_interval = [20000, 40000, 60000, 80000, 100000,
+                           120000, 140000, 160000, 180000, 200000, 220000, 240000, 250000]
     val_steps = 50
-    continue_from_checkpoint = True
 
-    # Model summary
-    pan_example = torch.randn(
-        (1, 1, 256, 256)).to(device)
-    mslr_example = torch.randn(
-        (1, 4, 64, 64)).to(device)
+    # summary(model, pan_example, mslr_example, verbose=1)
+    summary(model, [(1, 1, 256, 256), (1, 4, 64, 64)],
+            dtypes=[torch.float32, torch.float32])
 
-    summary(model, pan_example, mslr_example, verbose=1)
+    print('corrected trainable parms: ', sum(p.numel()
+          for p in model.parameters() if p.requires_grad))
 
-    # load checkpoint
-    if continue_from_checkpoint:
-        tr_metrics, val_metrics, test_metrics = load_checkpoint(torch.load(
-            'checkpoints/pnn_model/pnn_model_2023_07_17-11_30_23_best_eval.pth.tar'), model, optimizer, tr_metrics, val_metrics, test_metrics)
-        print('Model Loaded ...')
+    scheduler = StepLR(optimizer, step_size=1, gamma=0.5)
+    lr_decay_intervals = 50000
 
     print('==> Starting training ...')
     train_iter = iter(train_loader)
@@ -114,7 +100,7 @@ def main():
                           'tr_metrics': tr_metrics,
                           'val_metrics': val_metrics,
                           'test_metrics': test_metrics}
-            save_checkpoint(checkpoint, 'pnn_model', current_daytime)
+            save_checkpoint(checkpoint, 'MSDCNN_model', current_daytime)
 
         try:
             # Samples the batch
@@ -123,6 +109,11 @@ def main():
             # restart the loader if the previous loader is exhausted.
             train_iter = iter(train_loader)
             pan, mslr, mshr = next(train_iter)
+
+        # lr_decay
+        if step % lr_decay_intervals == 0 and step != 0:
+            scheduler.step()
+            # print(scheduler.get_last_lr())
 
         # forward
         pan, mslr, mshr = pan.to(device), mslr.to(device), mshr.to(device)
@@ -144,6 +135,10 @@ def main():
         train_progress_bar.set_postfix(
             loss=batch_metrics["loss"], psnr=f'{batch_metrics["psnr"]:.4f}', ssim=f'{batch_metrics["ssim"]:.4f}')
 
+        '''# lr_decay
+        if step % lr_decay_intervals == 0 and step != 0:
+            scheduler.step()
+'''
         # Store metrics
         if (step + 1) % report_interval == 0 and step != 0:
             # Batch metrics
@@ -216,7 +211,7 @@ def main():
                               'tr_metrics': tr_metrics,
                               'val_metrics': val_metrics,
                               'test_metrics': test_metrics}
-                save_checkpoint(checkpoint, 'pnn_model',
+                save_checkpoint(checkpoint, 'MSDCNN_model',
                                 current_daytime + '_best_eval')
 
         # test model
@@ -267,7 +262,7 @@ def main():
                               'tr_metrics': tr_metrics,
                               # 'val_metrics': val_metrics,
                               'test_metrics': test_metrics}
-                save_checkpoint(checkpoint, 'pnn_model',
+                save_checkpoint(checkpoint, 'MSDCNN_model',
                                 current_daytime + '_best_test')
 
     print('==> training ended <==')
