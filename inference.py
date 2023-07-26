@@ -10,7 +10,7 @@ from torchmetrics import MetricCollection, PeakSignalNoiseRatio, StructuralSimil
 from torchinfo import summary
 
 from data_loader.DataLoader import DIV2K, GaoFen2, Sev2Mod, WV3, GaoFen2panformer
-from MSDCNN import PNNmodel
+from MSDCNN import MSDCNN_model
 from utils import *
 import matplotlib.pyplot as plt
 import numpy as np
@@ -40,7 +40,7 @@ def main():
 
     # Initialize Model, optimizer, criterion and metrics
     # TODO is imge_size necesasary?
-    model = PNNmodel(scale=4, mslr_mean=train_dataset.mslr_mean.to(device), mslr_std=train_dataset.mslr_std.to(device), pan_mean=train_dataset.pan_mean.to(device),
+    model = MSDCNN_model(scale=4, ms_channels=4 ,mslr_mean=train_dataset.mslr_mean.to(device), mslr_std=train_dataset.mslr_std.to(device), pan_mean=train_dataset.pan_mean.to(device),
                      pan_std=train_dataset.pan_std.to(device)).to(device)
 
     my_list = ['conv_3.weight', 'conv_3.bias']
