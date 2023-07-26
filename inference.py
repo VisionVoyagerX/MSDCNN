@@ -39,20 +39,10 @@ def main():
         dataset=test_dataset, batch_size=64, shuffle=False)
 
     # Initialize Model, optimizer, criterion and metrics
-    # TODO is imge_size necesasary?
-    model = MSDCNN_model(scale=4, ms_channels=4 ,mslr_mean=train_dataset.mslr_mean.to(device), mslr_std=train_dataset.mslr_std.to(device), pan_mean=train_dataset.pan_mean.to(device),
-                     pan_std=train_dataset.pan_std.to(device)).to(device)
+    model = MSDCNN_model(scale=4,  ms_channels=4, mslr_mean=train_dataset.mslr_mean.to(device), mslr_std=train_dataset.mslr_std.to(device), pan_mean=train_dataset.pan_mean.to(device),
+                         pan_std=train_dataset.pan_std.to(device)).to(device)
 
-    my_list = ['conv_3.weight', 'conv_3.bias']
-    params = list(
-        filter(lambda kv: kv[0] in my_list, model.parameters()))
-    base_params = list(
-        filter(lambda kv: kv[0] not in my_list, model.parameters()))
-
-    optimizer = SGD([
-        {'params': params},
-        {'params': base_params, 'lr': 1e-9}
-    ], lr=1e-8, momentum=0.9)
+    optimizer = SGD(model.parameters(), lr=0.000001, momentum=0.9)
 
     criterion = MSELoss().to(device)
 
@@ -80,13 +70,13 @@ def main():
     best_eval_psnr = 0
     best_test_psnr = 0
     current_daytime = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
-    steps = 200000
+    steps = 250000
     save_interval = 1000
     report_interval = 50
-    test_intervals = [100000, 200000, 300000, 400000,
-                      500000, 600000, 700000, 800000, 900000, 1000000]
-    evaluation_interval = [100000, 200000, 300000, 400000,
-                           500000, 600000, 700000, 800000, 900000, 1000000]
+    test_intervals = [20000, 40000, 60000, 80000, 100000, 120000,
+                      140000, 160000, 180000, 200000, 220000, 240000, 250000]
+    evaluation_interval = [20000, 40000, 60000, 80000, 100000,
+                           120000, 140000, 160000, 180000, 200000, 220000, 240000, 250000]
     val_steps = 50
     continue_from_checkpoint = True
 
