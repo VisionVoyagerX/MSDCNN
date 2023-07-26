@@ -129,13 +129,6 @@ def main():
                 axis[3].set_title('(d) GT')
                 axis[3].axis("off")
 
-                plt.savefig('results/Images_GF2.png')
-
-                mslr = mslr.permute(0, 3, 2, 1).detach().cpu().numpy()
-                pan = pan.permute(0, 3, 2, 1).detach().cpu().numpy()
-                mssr = mssr.permute(0, 3, 2, 1).detach().cpu().numpy()
-                gt = mshr.permute(0, 3, 2, 1).detach().cpu().numpy()
-
                 plt.savefig('results/Images_WV3.png')
 
                 mslr = mslr.permute(0, 3, 2, 1).detach().cpu().numpy()
