@@ -7,7 +7,7 @@ from torch.nn import MSELoss
 from torch.utils.data import DataLoader
 from torchvision.transforms import Resize, RandomHorizontalFlip, RandomVerticalFlip, RandomRotation
 from torchmetrics import MetricCollection, PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
-from torchsummary import summary
+from torchinfo import summary
 
 from data_loader.DataLoader import DIV2K, GaoFen2, Sev2Mod, WV3, GaoFen2panformer
 from MSDCNN import PNNmodel
@@ -93,7 +93,7 @@ def main():
     # load checkpoint
     if continue_from_checkpoint:
         tr_metrics, val_metrics, test_metrics = load_checkpoint(torch.load(
-            'checkpoints/pnn_model/pnn_model_2023_07_17-11_30_23_best_eval.pth.tar'), model, optimizer, tr_metrics, val_metrics, test_metrics)
+            'checkpoints/MSDCNN_model_GF2/MSDCNN_model_GF2_2023_07_26-08_30_23.pth.tar'), model, optimizer, tr_metrics, val_metrics, test_metrics)
         print('Model Loaded ...')
 
     def scaleMinMax(x):
@@ -131,7 +131,7 @@ def main():
                 axis[2].imshow((scaleMinMax(mssr.permute(0, 3, 2, 1).detach().cpu()[
                                0, ...].numpy())).astype(np.float32)[..., :3], cmap='viridis')
                 axis[2].set_title(
-                    f'(c) PNN {test_metric["psnr"]:.2f}dB/{test_metric["ssim"]:.4f}')
+                    f'(c) MSDCNN {test_metric["psnr"]:.2f}dB/{test_metric["ssim"]:.4f}')
                 axis[2].axis("off")
 
                 axis[3].imshow((scaleMinMax(mshr.permute(0, 3, 2, 1).detach().cpu()[
@@ -139,7 +139,15 @@ def main():
                 axis[3].set_title('(d) GT')
                 axis[3].axis("off")
 
-                plt.savefig('results/Images.png')
+                plt.savefig('results/Images_GF2.png')
+
+                mslr = mslr.permute(0, 3, 2, 1).detach().cpu().numpy()
+                pan = pan.permute(0, 3, 2, 1).detach().cpu().numpy()
+                mssr = mssr.permute(0, 3, 2, 1).detach().cpu().numpy()
+                gt = mshr.permute(0, 3, 2, 1).detach().cpu().numpy()
+
+                np.savez('results/img_array_GF2.npz', mslr=mslr,
+                         pan=pan, mssr=mssr, gt=gt)
 
 
 if __name__ == '__main__':
