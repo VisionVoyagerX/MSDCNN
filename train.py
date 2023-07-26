@@ -79,7 +79,7 @@ def main():
     val_steps = 50
 
     # summary(model, pan_example, mslr_example, verbose=1)
-    summary(model, [(1, 1, 256, 256), (1, 4, 64, 64)],
+    summary(model, [(1, 1, 256, 256), (1, 8, 64, 64)],
             dtypes=[torch.float32, torch.float32])
 
     print('corrected trainable parms: ', sum(p.numel()
