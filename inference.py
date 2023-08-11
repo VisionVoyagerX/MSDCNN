@@ -24,14 +24,14 @@ def main():
         tr_dir = '/home/ubuntu/project/Data/GaoFen-2/train/train_gf2-001.h5'
         eval_dir = '/home/ubuntu/project/Data/GaoFen-2/val/valid_gf2.h5'
         test_dir =  '/home/ubuntu/project/Data/GaoFen-2/drive-download-20230623T170619Z-001/test_gf2_multiExm1.h5'
-        checkpoint_dir = 'checkpoints/pnn_model_GF2/pnn_model_GF2_2023_07_17-11_30_23.pth.tar'
+        checkpoint_dir = 'checkpoints/MSDCNN_model_GF2/MSDCNN_model_GF2_2023_07_26-08_30_23.pth.tar'
         ms_channel = 4
     elif choose_dataset == 'WV3':
         dataset = eval('WV3')
         tr_dir = '/home/ubuntu/project/Data/WorldView3/train/train_wv3-001.h5'
         eval_dir = '/home/ubuntu/project/Data/WorldView3/val/valid_wv3.h5'
         test_dir =  '/home/ubuntu/project/Data/WorldView3/drive-download-20230627T115841Z-001/test_wv3_multiExm1.h5'
-        checkpoint_dir = 'checkpoints/pnn_model_WV3/pnn_model_WV3_2023_07_24-19_19_31.pth.tar'
+        checkpoint_dir = 'checkpoints/MSDCNN_model_WV3/MSDCNN_model_WV3_2023_07_26-13_25_41.pth.tar'
         ms_channel = 8
     else:
         print(choose_dataset, ' does not exist')
